@@ -241,6 +241,8 @@ class DeliveryCarrierLabelGenerate(models.TransientModel):
             to_generate = to_generate.filtered(
                 lambda rec: rec.id not in already_generated_ids
             )
+        else:
+            to_generate.purge_tracking_references()
 
         for batch in to_generate:
             labels = self._get_all_files(batch)
