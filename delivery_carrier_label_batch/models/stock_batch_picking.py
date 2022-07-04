@@ -1,6 +1,8 @@
 # Copyright 2013-2019 Camptocamp SA
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl)
-from odoo import _, api, fields, models
+from contextlib import contextmanager
+
+from odoo import _, api, fields, models, registry, tools
 
 
 class StockBatchPicking(models.Model):
@@ -50,6 +52,7 @@ class StockBatchPicking(models.Model):
             default_options = self._get_options_to_add()
             self.option_ids = [(6, 0, default_options.ids)]
             self.carrier_code = self.carrier_id.code
+            self.purge_tracking_references()
             return {
                 "domain": {
                     "option_ids": [("id", "in", available_options.ids)],
@@ -107,3 +110,26 @@ class StockBatchPicking(models.Model):
         """
         values = self._values_with_carrier_options(values)
         return super(StockBatchPicking, self).create(values)
+
+    @contextmanager
+    @api.model
+    def _do_in_new_env(self):
+        if tools.config["test_enable"]:
+            yield self.env
+            return
+
+        with api.Environment.manage():
+            with registry(self.env.cr.dbname).cursor() as new_cr:
+                yield api.Environment(new_cr, self.env.uid, self.env.context)
+
+    def purge_tracking_references(self):
+        """Purge tracking for each picking and destination package"""
+        # We need a new env to ensure changes will be applied
+        with self._do_in_new_env() as new_env:
+            for batch in self.with_env(new_env):
+                for pack in batch.move_line_ids.mapped("result_package_id"):
+                    if pack.parcel_tracking:
+                        pack.write({"parcel_tracking": False})
+                for picking in batch.move_line_ids.mapped("picking_id"):
+                    if picking.carrier_tracking_ref:
+                        picking.write({"carrier_tracking_ref": False})
