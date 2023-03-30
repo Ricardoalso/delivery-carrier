@@ -1,2 +1,3 @@
 vcrpy
 vcrpy-unittest
+odoo-addon-delivery_postlogistics @ git+https://github.com/OCA/delivery-carrier.git@refs/pull/619/head#subdirectory=setup/delivery_postlogistics
