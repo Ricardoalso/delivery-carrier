@@ -78,10 +78,13 @@ class PostlogisticsWebService(object):
         :return a dict containing data for ns0:Recipient
 
         """
-        partner = picking.partner_id 
-        if picking.picking_type_id.code != "outgoing": 
-            location_dest = picking.location_dest_id 
-            partner = location_dest.company_id.partner_id or self.env.user.company_id.partner_id
+        partner = picking.partner_id
+        if picking.picking_type_id.code != "outgoing":
+            location_dest = picking.location_dest_id
+            partner = (
+                location_dest.company_id.partner_id
+                or self.env.user.company_id.partner_id
+            )
 
         partner_mobile = self._sanitize_string(
             picking.delivery_mobile or partner.mobile
@@ -149,7 +152,7 @@ class PostlogisticsWebService(object):
         """
         company = picking.company_id
         partner = company.partner_id
-        if picking.picking_type_id.code != "outgoing": 
+        if picking.picking_type_id.code != "outgoing":
             partner = picking.partner_id
 
         customer = {
