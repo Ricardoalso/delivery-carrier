@@ -79,6 +79,13 @@ class PostlogisticsWebService(object):
 
         """
         partner = picking.partner_id
+        if picking.picking_type_id.code != "outgoing":
+            location_dest = picking.location_dest_id
+            partner = (
+                location_dest.company_id.partner_id
+                or self.env.user.company_id.partner_id
+            )
+
         partner_mobile = self._sanitize_string(
             picking.delivery_mobile or partner.mobile
         )
@@ -94,6 +101,12 @@ class PostlogisticsWebService(object):
             raise exceptions.UserError(
                 _("Phone number is required for phone call notification.")
             )
+
+        if not partner.street:
+            raise exceptions.UserError(_("Partner street is required."))
+
+        if not partner.name and not partner.parent_id.name:
+            raise exceptions.UserError(_("Partner name is required."))
 
         partner_name = partner.name or partner.parent_id.name
         sanitized_partner_name = self._sanitize_string(partner_name)
@@ -146,6 +159,8 @@ class PostlogisticsWebService(object):
         """
         company = picking.company_id
         partner = company.partner_id
+        if picking.picking_type_id.code != "outgoing":
+            partner = picking.partner_id
 
         customer = {
             "name1": self._sanitize_string(partner.name),
